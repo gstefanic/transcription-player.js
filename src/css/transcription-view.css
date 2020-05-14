@@ -1,0 +1,135 @@
+.wavesurfer-region.active > .wavesurfer-handle {
+    width: 2px !important;
+}
+
+region.wavesurfer-region.active {
+    background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+region.wavesurfer-region {
+    cursor: pointer !important;
+}
+
+.wavesurfer-region.highlight {
+    background-color: rgba(0, 255, 0, 0.1) !important;
+}
+
+.wavesurfer-handle {
+    width: 0 !important;
+}
+
+.selecting {
+    color: red;
+}
+
+.selected {
+    display: inline;
+    padding: -1px;
+    border-radius: 1px 1px 1px;
+    border: 1px solid red;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.selected.active > .handle {
+    display: inline-block;
+    color: transparent;
+    cursor: e-resize;
+    background-color: red;
+}
+
+.selected > .handle {
+    display: none;
+}
+
+.tp-tv-container > .selected.highlight {
+    background-color: rgba(0, 255, 0, 0.1);
+}
+
+.tp-tv-container > div.selected.active {
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+.tp-player-container > wave {
+    overflow: hidden !important;
+    -ms-overflow-style: none !important;
+}
+
+.tp-player-container > wave::-webkit-scrollbar {
+    width: 0 !important 
+}
+
+/**/
+.tp-tv-container {
+    line-height: 150%;
+    font-size: 20px;
+}
+
+/* Disable text selecting in Viewing mode */
+.tp-tv-container {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Lyrics View */
+
+.tp-tv-container.view-mode--lyrics > .tp-tv-line.tp-tv-line--current {
+    color: #222;
+}
+
+.tp-tv-container.view-mode--lyrics > .tp-tv-line.tp-tv-line--active::first-line {
+    --color-progress: #CCC;
+    --color-not-yet: white;
+    background: linear-gradient(to right, var(--color-progress) var(--active-progress), var(--color-not-yet) var(--active-progress));
+}
+.tp-tv-container.view-mode--lyrics > .tp-tv-line.tp-tv-line--active {
+    font-weight: bold;
+}
+
+.tp-tv-container.view-mode--lyrics > .tp-tv-line.tp-tv-line--previous {
+    color: grey;
+}
+
+.tp-tv-container.view-mode--lyrics > .tp-tv-line.tp-tv-line--next {
+    color: grey;
+}
+
+.tp-tv-container.view-mode--lyrics > .tp-tv-line {
+    color: grey;
+    text-align: center;
+    display: block;
+}
+
+/* Text View */
+.tp-tv-container.view-mode--text > .tp-tv-line {
+    display: inline;
+    margin-right: var(--space-width);
+    color: grey;
+}
+
+.tp-tv-container.view-mode--text > .tp-tv-line.tp-tv-line.tp-tv-line--current {
+    color: black;
+}
+
+.tp-tv-container.view-mode--text > .tp-tv-line.tp-tv-line--active {
+    --color-progress: #CCC;
+    --color-not-yet: white;
+    background: linear-gradient(to right, var(--color-progress) var(--active-progress), var(--color-not-yet) var(--active-progress));
+}
+
+/* Hover */
+.tp-tv-container.view-mode--text > .tp-tv-line:hover {
+    color: black;
+}
+
+.tp-tv-container.view-mode--lyrics > .tp-tv-line:hover {
+    color: black;
+}
+
+.tp-tv-container > .tp-tv-line {
+    cursor: pointer;
+}

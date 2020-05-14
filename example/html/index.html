@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>transcription-player.js | HTML initialisation API example</title>
+
+    <!-- Bootstrap -->
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="../css/style.css" />
+
+    <!-- wavesurfer.js -->
+    <script src="../../dist/transcriptionPlayer.js"></script>
+    <script src="../../dist/transcriptionPlayer-html-init.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            console.log(window);
+        });
+    </script>
+    
+</head>
+<body>
+    <div class="container">
+        <div id="demo" style="width: 50%;">
+            <!-- data-audio-url="https://gstefanic-karaoke.herokuapp.com/mp3/let-it-go.mp3" -->
+            <!-- data-audio-url="../media/demo.mp3" -->
+            <!-- data-transcription-url="../transcriptions/demo.json"> -->
+            <transcription-player
+                data-view-mode="text"
+                data-audio-url="http://localhost:3000/mp3/let-it-go.mp3"
+                data-transcription-url="http://localhost:3000/lyrics/let-it-go.json">
+            </transcription-player>
+        </div>
+    </div>
+</body>

@@ -1,0 +1,115 @@
+.tp-simple-player-inner {
+    /* max-width: 1440px; */
+    margin: 0 auto;
+}
+.tp-simple-player-panel {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+}
+
+.tp-simple-player--track {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1 40%;
+        -ms-flex: 1 40%;
+            flex: 1 40%;
+    padding: 0 20px;
+    display: flex;
+}
+
+.tp-simple-player-progress-container {
+    position: relative;
+
+    padding: 5px 0 5px;
+    cursor: pointer;
+    width: auto;
+    width: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.tp-simple-player-progress {
+    position: relative;
+
+    height: 3px;
+    border-radius: 5px;
+    background: rgba(0,0,0,.2);
+
+    width: 100%;
+}
+
+.tp-simple-player-preload-bar,
+.tp-simple-player-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    border-radius: 5px 0 0 5px;
+    background: rgba(0,0,0,.3);
+    z-index: 999;
+}
+.tp-simple-player-bar {
+    background: #f50;
+    z-index: 9999;
+    height: 100%;
+}
+.tp-simple-player-bar:after {
+    position: absolute;
+    top: 0;
+    right: -5px;
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+    content: '';
+    border-radius: 6px;
+    background: #f50;
+    opacity: 0;
+    -webkit-transition: opacity .3s ease;
+    transition: opacity .3s ease;
+}
+.tp-simple-player-progress-container:hover .tp-simple-player-bar:after {
+    opacity: 1;
+}
+  
+/* Buttons */
+.tp-simple-player-controls {
+    position: relative;
+    z-index: 1000;
+    height: 32px;
+    cursor: pointer;
+    -webkit-transition: background .2s ease;
+    transition: background .2s ease;
+    text-align: center;
+    color: #fff;
+    border: 0;
+    outline: 0;
+    background: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.tp-simple-player-controls svg {
+    fill: #333;
+}
+.tp-simple-player-controls:hover svg {
+    fill: #222;
+}
+.tp-simple-player-controls:active {
+    background: rgba(0,0,0,.1);
+}
+
+.tp-simple-player--pause,
+.playing > .tp-simple-player--play {
+    display: none;
+}
+.playing > .tp-simple-player--pause {
+    display: inline;
+}
+
+.playing > .tp-simple-player--pause {
+    -webkit-animation: blink 1.5s linear infinite;
+    animation: blink 1.5s linear infinite;
+}

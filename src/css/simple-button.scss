@@ -1,0 +1,124 @@
+.tp-sb-button {
+    cursor: pointer;
+    display: inline-block;
+    padding: 0em 0.8em;
+    margin: 0 0.1em 0.1em 0;
+    border: 0.16em solid rgba(255,255,255,0);
+    border-radius: 2em;
+    box-sizing: border-box;
+    text-decoration: none;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+    color:#FFFFFF;
+    text-shadow: 0 0.04em 0.04em rgba(0,0,0,0.35);
+    text-align: center;
+    transition: all 0.2s;
+    height: var(--button-height);
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+$defaultcolour: white;
+$primarycolour: #2196F3;
+$successcolour: #5cb85c;
+$infocolour: #5bc0de;
+$warningcolour: #f0ad4e;
+$dangercolour: #d9534f;
+$linkcolour: transparent;
+
+// 
+.tp-sb-button.default {
+    background-color: $defaultcolour;
+    border-style: solid;
+    border-width: 1px;
+    color: #3c3c3c;
+    text-shadow: 0 0 0 rgba(0,0,0,0);
+}
+
+.tp-sb-button.primary {
+    background-color: $primarycolour;
+}
+
+.tp-sb-button.success {
+    background-color: $successcolour;
+}
+
+.tp-sb-button.info {
+    background-color: $infocolour;
+}
+
+.tp-sb-button.warning {
+    background-color: $warningcolour;
+}
+
+.tp-sb-button.danger {
+    background-color: $dangercolour;
+}
+
+.tp-sb-button.link {
+    color: #0000FF;
+    background-color: $linkcolour;
+}
+
+/**/
+.tp-sb-button.default:hover {
+    background-color: darken($defaultcolour, 5%);
+}
+
+.tp-sb-button.primary:hover {
+    background-color: darken($primarycolour, 10%);
+}
+
+.tp-sb-button.success:hover {
+    background-color: darken($successcolour, 10%);
+}
+
+.tp-sb-button.info:hover {
+    background-color: darken($infocolour, 10%);
+}
+
+.tp-sb-button.warning:hover {
+    background-color: darken($warningcolour, 10%);
+}
+
+.tp-sb-button.danger:hover {
+    background-color: darken($dangercolour, 10%);
+}
+
+.tp-sb-button.link:hover {
+    text-decoration: underline;
+}
+
+/* */
+.tp-sb-button.default:active {
+    background-color: darken($defaultcolour, 10%);
+}
+
+.tp-sb-button.primary:active {
+    background-color: darken($primarycolour, 20%);
+}
+
+.tp-sb-button.success:active {
+    background-color: darken($successcolour, 20%);
+}
+
+.tp-sb-button.info:active {
+    background-color: darken($infocolour, 20%);
+}
+
+.tp-sb-button.warning:active {
+    background-color: darken($warningcolour, 20%);
+}
+
+.tp-sb-button.danger:active {
+    background-color: darken($dangercolour, 20%);
+}
+
+.tp-sb-button.link:active {
+    color: #800080;
+}

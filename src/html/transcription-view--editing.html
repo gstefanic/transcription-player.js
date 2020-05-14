@@ -1,0 +1,13 @@
+{{#transcription}}
+
+    {{#section?}}
+    <div class="tp-tv-line selected">
+        <span class="handle">|</span>{{#words}}<span>{{word}}</span>{{/words}}<span class="handle">|</span>
+    </div>
+    {{/section?}}
+
+    {{^section?}}
+    {{#words}}<span>{{word}}</span>{{/words}}
+    {{/section?}}
+
+{{/transcription}}

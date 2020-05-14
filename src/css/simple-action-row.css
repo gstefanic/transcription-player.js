@@ -1,0 +1,14 @@
+.tp-ar-container {
+    display: flex; 
+    justify-content: flex-end;
+}
+
+.tp-ar-container > div {
+    padding-left: 16px;
+}
+
+.tp-ar-container > div.hidden {
+    margin: 0;
+    padding: 0;
+    display: none;
+}
