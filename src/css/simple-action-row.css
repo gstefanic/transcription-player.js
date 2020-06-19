@@ -1,6 +1,7 @@
 .tp-ar-container {
     display: flex; 
     justify-content: flex-end;
+    vertical-align: middle;
 }
 
 .tp-ar-container > div {

@@ -68,6 +68,8 @@ export default class TranscriptionComponent extends util.Observer {
             this.fireEvent('goto', time || (this.transcription[index - 1] ? (this.transcription[index - 1].end || 0) : 0));
         });
         this.view.on('section-created', params => this.fireEvent('section-created', params));
+        this.view.on('section-mouseenter', index => this.fireEvent('section-mouseenter', index));
+        this.view.on('section-mouseleave', index => this.fireEvent('section-mouseleave', index));
 
         return this;
     }
@@ -144,30 +146,46 @@ export default class TranscriptionComponent extends util.Observer {
         // console.log('onTimeUpdated', currentTime, this.currentLineIndex);
     }
 
-
     startEditing() {
-        this.previousTime = null;
-        // /**
-        //  * @type {HTMLDivElement}
-        //  */
-        // let container = util.html.create('div', {
-        //     className: 'testing'
-        // });
-        // this.transcription.forEach(line => {
-        //     line.text.split(' ').forEach(word => {
-        //         container.appendChild(util.html.create('span', {
-        //             innerHTML: word + ' ',
-        //         }));
-        //     });
-        // });
-        // this.container.appendChild(container);
-        
+        this.previousTime = null;        
         this.view.setStateEditing();
         // return;
         /**
          * @type {HTMLDivElement}
          */
         const container = this.container;
+
+        const sectionsCollection = container.getElementsByClassName('selected');
+
+        this.highlightSection = index => sectionsCollection[index] && sectionsCollection[index].classList.add('highlight');
+        this.unhighlightSection = index => sectionsCollection[index] && sectionsCollection[index].classList.remove('highlight');
+        
+        const deactivateAllSections = () => Array.prototype.slice.call(this.container.querySelectorAll('.selected.active')).forEach(e => e.classList.remove('active'));
+
+        this.activateSection = index => {
+            deactivateAllSections();
+            sectionsCollection[index] && sectionsCollection[index].classList.add('active');
+        };
+
+        this.removeSection = index => {
+            const section = sectionsCollection[index];
+            if (section instanceof HTMLElement) {
+                while (section.firstChild) {
+                    if (section.firstChild.classList.contains('handle')) {
+                        section.firstChild.remove();
+                    } else {
+                        section.insertAdjacentElement('beforebegin', section.firstChild);
+                    }
+                }
+                section.remove();
+            }
+        };
+
+        const calculateSectionIndex = section => {
+            if (section instanceof HTMLElement) {
+                return Array.prototype.slice.call(sectionsCollection).findIndex(el => el === section);
+            }
+        };
 
         /**
          * 
@@ -212,9 +230,7 @@ export default class TranscriptionComponent extends util.Observer {
                     innerHTML: '|',
                 }), wrapper.firstChild);
 
-                this.fireEvent('section-created', {
-                    section: wrapper,
-                });
+                this.view.addSectionEventHandlers(wrapper);
             }
         };
 
@@ -255,10 +271,10 @@ export default class TranscriptionComponent extends util.Observer {
          * @returns {Function}
          */
         const isValidForResizing = handle => {
-            const selected = container.querySelectorAll('.selected');
+            // const selected = container.querySelectorAll('.selected');
 
             /** @type {HTMLElement[]} */
-            const sections = Array.prototype.slice.call(selected);
+            const sections = Array.prototype.slice.call(sectionsCollection);
             const sectionIndex = sections.indexOf(handle.parentElement);
             const validRange = rangy.createRange();
             if (isLeftHandle(handle)) {
@@ -286,12 +302,6 @@ export default class TranscriptionComponent extends util.Observer {
                 && (!validRange.isValid() || validRange.containsNodeContents(e));
         };
 
-        const calculateSectionIndex = section => {
-            if (section instanceof HTMLElement) {
-                return Array.prototype.slice.call(section.parentElement.querySelectorAll('.selected')).findIndex(el => el === section);
-            }
-        };
-
         /**
          * @description
          * @param {HTMLSpanElement} handle 
@@ -305,6 +315,7 @@ export default class TranscriptionComponent extends util.Observer {
             }
             const emitSectionRemoved = (index => () => this.fireEvent('section-removed', index))(calculateSectionIndex(selection));
             const orderedElements = range.getNodes([1], e => elements.includes(e));
+            console.log('changeSelection orderedElements:', orderedElements);
             if (isLeftHandle(handle)) {
                 if (range.compareNode(selection) === range.NODE_AFTER) {
                     // extend to left
@@ -313,9 +324,13 @@ export default class TranscriptionComponent extends util.Observer {
                     }
                 } else {
                     // shrink from left
-                    for (let i = 0; i < orderedElements.length; i++) {
-                        selection.insertAdjacentElement('beforebegin', orderedElements[i]);
-                    }
+                    // for (let i = 0; i < orderedElements.length; i++) {
+                    //     selection.insertAdjacentElement('beforebegin', orderedElements[i]);
+                    // }
+                    orderedElements.forEach((el, index) => {
+                        console.log(index);
+                        selection.insertAdjacentElement('beforebegin', el);
+                    });
                     if (selection.childElementCount < 3) {
                         selection.remove();
                         emitSectionRemoved();
@@ -353,7 +368,8 @@ export default class TranscriptionComponent extends util.Observer {
             // add filters so only non selected items are in selection
             if (isNonSelectedSpan(e.target)) {
                 e.inst.addFilter(isNonSelectedSpan);
-                e.inst.addFilter(isInSameSectionAs(e.target, container.querySelectorAll('.selected')));
+                // e.inst.addFilter(isInSameSectionAs(e.target, container.querySelectorAll('.selected')));
+                e.inst.addFilter(isInSameSectionAs(e.target, sectionsCollection));
             } else if (isHandle(e.target)) {
                 // e.inst.addFilter(el => el instanceof HTMLSpanElement && !el.classList.contains('handle'));
                 e.inst.addFilter(isValidForResizing(e.target));
@@ -395,17 +411,17 @@ export default class TranscriptionComponent extends util.Observer {
         }).on('click', e => {
             console.log('click', e);
             if (e.target === undefined) {
-                this.fireEvent('section-click', undefined);
+                this.fireEvent('section-click', -1);
             } else if (isSelectedDiv(e.target)) {
-                this.fireEvent('section-click', e.target);
+                this.fireEvent('section-click', calculateSectionIndex(e.target));
             }
         }).on('dblclick', e => {
             console.log('dblclick', e);
             if (e.target === undefined) {
-                this.fireEvent('section-dblclick', undefined);
+                this.fireEvent('section-dblclick', -1);
             } else if (isSelectedDiv(e.target)) {
                 // TODO: start editing text
-                this.fireEvent('section-dblclick', e.target);
+                this.fireEvent('section-dblclick', calculateSectionIndex(e.target));
             }
         });
 
@@ -476,8 +492,6 @@ export default class TranscriptionComponent extends util.Observer {
                 });
             }
 
-            this.selector && this.selector.destroy && this.selector.destroy();
-
             return transcription;
 
         };
@@ -499,6 +513,8 @@ export default class TranscriptionComponent extends util.Observer {
             transcription = this.transcription;
             this.view.setStateViewing();
         }
+
+        this.selector && this.selector.destroy && this.selector.destroy();
 
         return transcription;
     }

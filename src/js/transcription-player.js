@@ -4,7 +4,7 @@ import TranscriptionComponent from './transcription-component';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/src/plugin/regions.js';
 import SimpleActionRow from './simple-action-row';
-import { is } from 'date-fns/locale';
+import WaveformPlayer from './waveform-player';
 
 /**
  * @typedef {Object} PluginDefinition
@@ -70,7 +70,7 @@ export default class TranscriptionPlayer extends util.Observer {
 
     defaultParams = {
         container: null,
-        player: WaveSurfer,
+        player: WaveformPlayer,
         transcription: TranscriptionComponent,
         actionsRow: SimpleActionRow,
     };
@@ -229,394 +229,83 @@ export default class TranscriptionPlayer extends util.Observer {
             this.actionsRow.layout = 'editing';
             lyricsModeToggle.enabled = false;
             this.player.toggleInteraction();
+            this.player.scrollZoomEnabled = true;
             this.player.pause();
             this.transcription.startEditing();
         });
 
-        const calculateSectionIndex = section => {
-            if (section) {
-                return Array.prototype.slice.call(section.parentElement.querySelectorAll('.selected')).findIndex(el => el === section);
-            }
+        const highlight = index => {
+            this.player.highlightRegion(index);
+            this.transcription.highlightSection(index);
         };
-
-        const getRegionFromId = id => this.player.regions.list[id];
-        let _regionIndexIdMap = [];
-        let _allRegionsCount = 0;
-        const regionIdFromIndex = index => index < _regionIndexIdMap.length ? _regionIndexIdMap[index] : undefined;
-        const regionIndexFromId = id => {
-            const index = _regionIndexIdMap.findIndex(_id => _id === id);
-            return index >= 0 ? index : undefined;
-        };
-        const getNextRegion = (regionOrId, fn = index => index + 1) => {
-            if (isRegion(regionOrId)) {
-                const region = regionOrId;
-                return getNextRegion(region.id, fn);
-            } else if (isValidRegionId(regionOrId)) {
-                const id = regionOrId;
-                const index = regionIndexFromId(id);
-                const nextIndex = fn(index);
-                const nextRegionId = regionIdFromIndex(nextIndex);
-                return getRegionFromId(nextRegionId);
-            } else {
-                return undefined;
-            }
-        };
-        const getPreviousRegion = (regionOrId, fn = index => index - 1) => getNextRegion(regionOrId, fn);
-
-        let _zoomedRegionId = undefined;
-        /**
-         * @param {string} id 
-         */
-        const isZoomedInOnRegion = regionOrId => {
-            if (isRegion(regionOrId)) {
-                const region = regionOrId;
-                return isZoomedInOnRegion(region.id);
-            } else if (isValidRegionId(regionOrId)) {
-                const id = regionOrId;
-                return _zoomedRegionId !== undefined && id === _zoomedRegionId;
-            } else {
-                return false;
-            }
-        };
-
-        /**
-         * @param {string} id 
-         */
-        const isValidRegionId = id => this.player.regions.list[id] !== undefined;
-
-        const isRegion = region => region !== undefined && region.play && region.id !== undefined;
-
-        /**
-         * @param {string} id
-         */
-        const zoomOnRegion = (regionOrId, minZoomDuration = 24) => {
-            if (isValidRegionId(regionOrId)) {
-                const id = regionOrId;
-                return zoomOnRegion(getRegionFromId(id));
-            } else if (isRegion(regionOrId)) {
-                const region = regionOrId;
-                if (region) {
-                    // Durration we want to zoom on
-                    const duration = region.end - region.start;
-                    const zoomDuration = Math.max(duration * 3, minZoomDuration);
-        
-                    // Width of player container
-                    const width = this.player.container.clientWidth;
-        
-                    const pxPerSec = width / zoomDuration;
-                    this.player.zoom(pxPerSec);
-        
-                    // Calculate progress where region starts
-                    const regionStartInPercents = region.start / this.player.getDuration();
-                    this.player.seekAndCenter(regionStartInPercents);
-    
-                    // Change previous active region `background-color`
-                    // if (isValidRegionId(_zoomedRegionId)) {
-                    //     deactivate(regionIndexFromId(_zoomedRegionId));
-                    // }
-    
-                    activate(regionIndexFromId(region.id));
-    
-                    _zoomedRegionId = region.id;
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        const zoomOut = () => {
-            const width = this.player.container.clientWidth;
-            const duration = this.player.getDuration();
-            const pxPerSec = width / duration;
-            this.player.zoom(pxPerSec);
-
-            // Change color of active region to default
-            if (isValidRegionId(_zoomedRegionId)) {
-                deactivate(regionIndexFromId(_zoomedRegionId))
-            }
-
-            _zoomedRegionId = undefined;
-        };
-
-        const activateSection = section => section instanceof HTMLElement && section.classList.add('active');
-        const deactivateSection = section => section instanceof HTMLElement && section.classList.remove('active');
-
-        const activateRegion = region => isRegion(region) && region.element instanceof HTMLElement && region.element.classList.add('active');
-        const deactivateRegion = region => isRegion(region) && region.element instanceof HTMLElement && region.element.classList.remove('active');
-
-        const activate = index => {
-            deactivate();
-            const section = getSectionFromIndex(index);
-            activateSection(section);
-
-            const regionId = regionIdFromIndex(index);
-            const region = getRegionFromId(regionId);
-            activateRegion(region);
-        };
-
-        const deactivate = index => {
+        const unhighlight = index => {
             if (index === undefined) {
-                Array.prototype.slice.call(this.container.getElementsByClassName('active')).forEach(e => e.classList.remove('active'));
+                // Remove all `highlight` classes from regions and sections
+                Array.prototype.slice.call(this.container.querySelectorAll('.selected.highlight, region.highlight'))
+                .forEach(e => e.classList.remove('highlight'));
             } else {
-                const section = getSectionFromIndex(index);
-                deactivateSection(section);
-    
-                const regionId = regionIdFromIndex(index);
-                const region = getRegionFromId(regionId);
-                deactivateRegion(region);
+                this.player.unhighlightRegion(index);
+                this.transcription.unhighlightSection(index);
             }
         };
 
-        /**
-         * @param {string} id Region id
-         * @param {boolean} loop Whether to loop region
-         */
-        const playRegion = (regionOrId, loop = false) => {
-            if (isRegion(regionOrId)) {
-                const region = regionOrId;
-                if (region) {
-                    loop ? region.playLoop() : region.play();
-                }
-            } else if (isValidRegionId(regionOrId)) {
-                const id = regionOrId;
-                playRegion(getRegionFromId(id));
-            }
+        this.player.on('region-mouseenter', highlight);
+        this.player.on('region-mouseleave', unhighlight);
+        this.transcription.on('section-mouseenter', highlight);
+        this.transcription.on('section-mouseleave', unhighlight);
+
+        const activate = (index, event) => {
+            this.player.activateRegion(index);
+            this.transcription.activateSection(index);
         };
 
-        this.transcription.on('section-click', section => {
-            console.log('section-click', section);
+        this.player.on('region-click', activate);
+        this.transcription.on('section-click', activate);
 
-            const index = calculateSectionIndex(section);
-            const regionId = regionIdFromIndex(index);
+        this.transcription.on('section-created', ({start, end, index}) => {
+            if (start === undefined || end === undefined) {
 
-            if (isValidRegionId(regionId)) {
-                if (isZoomedInOnRegion(regionId)) {
-                    this.player.isPlaying() ? this.player.pause() : playRegion(regionId);
-                } else {
-                    this.player.pause();
-                    zoomOnRegion(regionId);
+                if (index === undefined) {
+                    throw new Error('`section-created` should emit at least one of `start`, `end` or `index`')
                 }
-            } else {
-                zoomOut();
-            }
-        });
-
-        this.player.on('region-click', region => {
-            if (isZoomedInOnRegion(region)) {
-                this.player.isPlaying() ? this.player.pause() : playRegion(region);
-            } else {
-                this.player.pause();
-                zoomOnRegion(region);
-            }
-        });
-
-        /*  */
-        this.player.on('region-dblclick', region => {
-            console.log('region-dblclick', region);
-            const index = regionIndexFromId(region.id);
-            removeSection(getSectionFromIndex(index));
-            region.remove();
-            zoomOut();
-        });
-
-        /**
-         * @param {HTMLElement} section 
-         */
-        const removeSection = section => {
-            if (section instanceof HTMLElement) {
-                while (section.firstChild) {
-                    if (section.firstChild.classList.contains('handle')) {
-                        section.firstChild.remove();
-                    } else {
-                        section.insertAdjacentElement('beforebegin', section.firstChild);
-                    }
-                }
-                section.remove();
-            }
-        }
-
-        const addRegion = (index, {start, end}) => {
-            if (start !== undefined && end !== undefined && start < end && start >= 0 && end <= this.player.getDuration()) {
-                const regionId = _allRegionsCount++;
-                this.player.addRegion({
-                    id: regionId,
-                    start: start,
-                    end: end,
-                    drag: false,
-                });
-                _regionIndexIdMap.splice(index, 0, regionId);
-                return regionId;
-            }
-        };
-
-        const removeRegion = index => {
-            const regionId = regionIdFromIndex(index);
-            const region = getRegionFromId(regionId);
-            if (isRegion(region)) {
-                region.remove();
-            }
-        };
-
-        this.player.on('region-removed', region => {
-            if (isRegion(region)) {
-                const regionId = region.id;
-                const index = regionIndexFromId(regionId);
-                if (index !== undefined && index >= 0 && index < _regionIndexIdMap.length) {
-                    _regionIndexIdMap.splice(index, 1);
-                }
-            }
-        });
-
-        this.transcription.on('section-created', ({section, start, end, init}) => {
-            console.log('section-created', section, start, end, init);
-
-            const index = calculateSectionIndex(section);
-
-            if (start !== undefined && end !== undefined && index !== undefined) {
-                addRegion(index, {
-                    start: start,
-                    end: end,
-                });
-            } else if (!init && section) {
+                
                 // New section has been created by hand
                 // create new region
-                console.log('TODO: create new region and fix ids');
-                const leftRegion = getRegionFromId(regionIdFromIndex(index - 1));
-                const rightRegion = getRegionFromId(regionIdFromIndex(index));
+                console.log('TODO: create new region', index);
+                const leftRegion = this.player.getRegion(index - 1);
+                const rightRegion = this.player.getRegion(index);
 
-                const leftBorder = leftRegion ? leftRegion.end : 0;
-                const rightBorder = rightRegion ? rightRegion.start : this.player.getDuration();
-
-                console.log(leftBorder, rightBorder);
-
-                if (leftBorder < rightBorder) {
-                    const regionId = addRegion(index, {
-                        start: leftBorder,
-                        end: rightBorder,
-                    });
-
-                    unhighlight();
-                    zoomOnRegion(regionId);
-                } else {
-                    // TODO show error because there is no room for new region
-                    removeSection(section);
-                }
-
+                start = leftRegion ? leftRegion.end : 0;
+                end = rightRegion ? rightRegion.start : this.player.getDuration();
             }
 
-            const mouseHoverHandler = event => {
-                this.transcription.fireEvent('section-' + event.type, {
-                    target: section,
-                    oe: event,
-                    index: calculateSectionIndex(section),
-                });
-            };
+            const {region} = this.player.addRegion({
+                start: start,
+                end: end,
+            });
 
-            if (section instanceof HTMLElement) {
-                section.addEventListener('mouseenter', mouseHoverHandler);
-                section.addEventListener('mouseleave', mouseHoverHandler);
+            if (region) {
+                activate(index);
+            } else if (index !== undefined) {
+                // TODO show error because there is no room for new region
+                this.transcription.removeSection(index);
             }
+            
         });
 
         this.transcription.on('section-removed', index => {
             console.log('section-removed', index);
-            removeRegion(index);
-            if (!zoomOnRegion(index + 1)) {
-                if (!zoomOnRegion(index)) {
-                    zoomOut();
-                }
-            }
-        });
-
-        const getSectionFromIndex = index => Array.prototype.slice.call(this.transcription.container.querySelectorAll('.selected'))[index];
-
-        const highlightSection = section => section && section instanceof HTMLElement && section.classList.add('highlight');
-        const unhighlightSection = section => section && section instanceof HTMLElement && section.classList.remove('highlight');;
-
-        const highlightRegion = region => isRegion(region) && region.element instanceof HTMLElement && region.element.classList.add('highlight');
-
-        const unhighlightRegion = region => isRegion(region) && region.element instanceof HTMLElement && region.element.classList.remove('highlight');
-
-        const highlight = index => {
-            const section = getSectionFromIndex(index);
-            // console.log('hightlight section:', section, index);
-            highlightSection(section);
-
-            const regionId = regionIdFromIndex(index);
-            const region = getRegionFromId(regionId);
-            highlightRegion(region);
-        };
-
-        const unhighlight = index => {
-            if (index === undefined) {
-                Array.prototype.slice.call(this.container.getElementsByClassName('highlight')).forEach(e => e.classList.remove('highlight'));
-            } else {
-                const section = getSectionFromIndex(index);
-                unhighlightSection(section);
-    
-                const regionId = regionIdFromIndex(index);
-                const region = getRegionFromId(regionId);
-                unhighlightRegion(region);
-            }
-        };
-
-        this.transcription.on('section-mouseenter', ({index, oe, target}) => {
-            // console.log('section-mouseenter', index, target);
-            highlight(index);
-        });
-
-        this.transcription.on('section-mouseleave', ({index, oe, target}) => {
-            // console.log('section-mouseleave', index, target);
-            unhighlight(index);
-        });
-
-        this.player.on('region-mouseenter', (region, event) => {
-            console.log('region-mouseenter', region, event);
-            highlight(regionIndexFromId(region.id));
-        });
-        
-        this.player.on('region-mouseleave', (region, event) => {
-            // console.log('region-mouseleave', region, event);
-            unhighlight(regionIndexFromId(region.id));
-        });
-        
-        const fixRegionRange = region => {
-            const prevRegion = getPreviousRegion(region);
-            const nextRegion = getNextRegion(region);
-            
-            if (prevRegion && region.start < prevRegion.end) {
-                region.update({
-                    start: prevRegion.end,
-                });
-            }
-
-            if (nextRegion && region.end > nextRegion.start) {
-                region.update({
-                    end: nextRegion.start,
-                });
-            }
-        };
-
-        const throttledFixRegionRange = fixRegionRange.throttle(150);
-        const debouncedFixRegionRange = fixRegionRange.debounce(150);
-
-        this.player.on('region-updated', region => {
-            if (this.player.isPlaying) {
-                this.player.pause();
-            }
-            throttledFixRegionRange(region);
-            debouncedFixRegionRange(region);
-        });
-
-        this.player.on('region-update-end', region => {
-            playRegion(region);
+            this.player.pause();
+            this.player.removeRegion(index);
         });
 
         cancelButton.on('click', () => {
             console.log('cancelClicked');
             this.player.pause();
+            this.player.zoomReset();
             this.transcription.doneEditing();
             this.player.toggleInteraction();
+            this.player.scrollZoomEnabled = false;
             this.player.clearRegions();
             this.actionsRow.layout = undefined;
         });
@@ -624,16 +313,19 @@ export default class TranscriptionPlayer extends util.Observer {
         doneButton.on('click', () => {
             console.log('doneClicked');
             this.player.pause();
-            console.log('regions:', Object.keys(this.player.regions.list), this.player.regions.list);
-            const regions = Object.keys(this.player.regions.list).map((_, index) => {
-                const region = getRegionFromId(regionIdFromIndex(index));
-                return {
-                    start: region.start,
-                    end: region.end,
-                }
-            });
+            this.player.zoomReset();
+            // console.log('regions:', Object.keys(this.player.regions.list), this.player.regions.list);
+            // const regions = Object.keys(this.player.regions.list).map((_, index) => {
+            //     const region = getRegionFromId(regionIdFromIndex(index));
+            //     return {
+            //         start: region.start,
+            //         end: region.end,
+            //     }
+            // });
+            const regions = this.player.getRegions();
             this.transcription.doneEditing(regions);
             this.player.toggleInteraction();
+            this.player.scrollZoomEnabled = false;
             this.player.clearRegions();
             this.actionsRow.layout = null;
         });
@@ -800,45 +492,12 @@ export default class TranscriptionPlayer extends util.Observer {
      * @emits TranscriptionPlayer#player-created
      */
     createPlayer(container) {
-        const roundedBarsParams = {
-            waveColor: '#D9DCFF',
-            progressColor: '#4353FF',
-            cursorColor: '#4353FF',
-            barWidth: 3,
-            barRadius: 3,
-            cursorWidth: 1,
-            // height: 100,
-            barGap: 3,
-        }
+
         var params = Object.assign({
             container: container,
-            backend: 'MediaElement',
-            mediaControls: true,
-            fillParent: true,
-            scrollParent: false,
-        }, roundedBarsParams);
+        });
 
         this.player = this.Player.create(params);
-
-        this.player.addPlugin(RegionsPlugin.create());
-
-        const forceHorizontalScroll = container => {
-            function scrollHorizontally(e) {
-                e = window.event || e;
-                var delta = Math.max(-1, Math.min(1, (e.deltaY || e.wheelDelta || -e.detail)));
-                console.log('wheel', delta, e);
-                container.scrollLeft += (delta * 40); // Multiplied by 40
-                e.preventDefault();
-            }
-            if (container.addEventListener) {
-                container.addEventListener("wheel", scrollHorizontally, false);
-            } else {
-                // IE 6/7/8
-                container.attachEvent("onmousewheel", scrollHorizontally);
-            }
-        };
-
-        forceHorizontalScroll(this.player.container.querySelector('wave'));
 
         this.player.on('ready', () => this.fireEvent('player-created'));
         this.player.on('audioprocess', time => this.fireEvent('timeupdated', time));

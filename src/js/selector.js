@@ -257,6 +257,7 @@ export default class Selector {
                 if (!_justClick) return;
 
                 const targets = document.elementsFromPoint(event.x, event.y).filter(element => selectables.includes(element));
+                console.log('targets.length:', targets.length);
                 if (targets.length === 0) {
                     _emit(event.type, {
                         oe: event,
@@ -277,6 +278,7 @@ export default class Selector {
                                 const index = _clickedSelectables.indexOf(target);
                                 if (index >= 0) {
                                     _clickedSelectables.splice(index, 1);
+                                    console.log('emit click', target);
                                     _emit('click', {
                                         oe: event,
                                         target: target,
@@ -293,23 +295,25 @@ export default class Selector {
 
         const throttledMousemove = eventHandlers.mousemove.throttle(params.threshold);
         const debouncedMousemove = eventHandlers.mousemove.debounce(params.threshold);
+        const mouseupHandler = eventHandlers.mouseup;
+        const clickHandler = eventHandlers.click;
+        const mousedownHandler = eventHandlers.mousedown;
 
-        document.addEventListener('mousemove', throttledMousemove);
-        document.addEventListener('mousemove', debouncedMousemove);
-        document.addEventListener('mouseup', eventHandlers.mouseup);
-        selectionAreaContainer.addEventListener('click', eventHandlers.click);
-        // document.addEventListener('dblclick', eventHandlers.click);
-        selectionAreaContainer.addEventListener('mousedown', eventHandlers.mousedown);
+        document.addEventListener('mousemove', throttledMousemove, true);
+        document.addEventListener('mousemove', debouncedMousemove, true);
+        document.addEventListener('mouseup', mouseupHandler, true);
+        selectionAreaContainer.addEventListener('click', clickHandler, true);
+        selectionAreaContainer.addEventListener('mousedown', mousedownHandler, true);
 
         // Add member functions
 
         this.destroy = () => {
-            document.removeEventListener('mousemove', throttledMousemove);
-            document.removeEventListener('mousemove', debouncedMousemove);
-            document.removeEventListener('mouseup', eventHandlers.mouseup);
-            selectionAreaContainer.removeEventListener('click', eventHandlers.click);
-            // document.removeEventListener('dblclick', eventHandlers.click);
-            selectionAreaContainer.removeEventListener('mousedown', eventHandlers.mousedown);
+            console.log('Selector destroy');
+            document.removeEventListener('mousemove', throttledMousemove, true);
+            document.removeEventListener('mousemove', debouncedMousemove, true);
+            document.removeEventListener('mouseup', mouseupHandler, true);
+            selectionAreaContainer.removeEventListener('click', clickHandler, true);
+            selectionAreaContainer.removeEventListener('mousedown', mousedownHandler, true);
         };
 
         /**

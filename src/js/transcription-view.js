@@ -1,6 +1,6 @@
 import * as util from './util';
 import cssModify from "css-modify";
-import emptyPromise from 'empty-promise'
+import emptyPromise from 'empty-promise';
 
 const VIEWING = 'viewing';
 const EDITING = 'editing';
@@ -59,27 +59,22 @@ export default class TranscriptionView extends util.Observer {
                 console.log('editing init waiting to resolve');
                 Promise.resolve(this.transcription).then(transcription => {
 
-                    let sections = [];
-                    transcription.forEach((line, index) => {
-                        line.words = line.text.split(' ').map(word => { return { word: word + ' ' } });
+                    transcription.forEach((line) => {
+                        line.words = line.text.split(' ').map((word, ix, arr) => { return { word: word + (ix  < (arr.length - 1) ? ' ' : '') } });
                         if (line.end !== undefined && line.start !== undefined) {
                             line['section?'] = true;
-                            sections.push(index);
+                            this.fireEvent('section-created', {
+                                start: line.start,
+                                end: line.end,
+                            });
                         }
                     });
-                    console.log('this.transcription resolved in editing', transcription, 'sections:', sections);
                     this.container.innerHTML = require('../html/transcription-view--editing.html')({
                         transcription: transcription
                     });
 
-                    Array.prototype.slice.call(this.container.querySelectorAll('.selected')).forEach((section, index) => {
-                        this.fireEvent('section-created', {
-                            section: section,
-                            start: transcription[sections[index]].start,
-                            end: transcription[sections[index]].end,
-                            init: true,
-                        });
-                    });
+                    // Add event listeners to each section
+                    Array.prototype.slice.call(this.sectionsCollection).forEach(e => this.addSectionEventHandlers(e), this);
                 });
                 
             },
@@ -177,6 +172,7 @@ export default class TranscriptionView extends util.Observer {
         this.css.modify('space-width', spaceWidth + 'px');
 
         this.container.classList.add('tp-tv-container');
+        this.sectionsCollection = this.container.getElementsByClassName('selected');
         
         this.setViewMode(this.params.viewMode);
         this.setState(VIEWING);
@@ -389,6 +385,17 @@ export default class TranscriptionView extends util.Observer {
      */
     setProgress(p) {
         this.css.modify('active-progress', (p * 100) + '%');
+    }
+
+    addSectionEventHandlers(section) {
+        const mouseHoverHandler = event => {
+            this.fireEvent('section-' + event.type, Array.prototype.slice.call(this.sectionsCollection).findIndex(el => el === section));
+        };
+
+        if (section instanceof HTMLElement) {
+            section.addEventListener('mouseenter', event => mouseHoverHandler.call(this, event));
+            section.addEventListener('mouseleave', event => mouseHoverHandler.call(this, event));
+        }
     }
 
 }

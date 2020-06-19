@@ -24,10 +24,12 @@ region.wavesurfer-region {
 
 .selected {
     display: inline;
-    padding: -1px;
     border-radius: 1px 1px 1px;
     border: 1px solid red;
-    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.selected + span {
     margin-right: 4px;
 }
 
@@ -48,15 +50,6 @@ region.wavesurfer-region {
 
 .tp-tv-container > div.selected.active {
     background-color: rgba(255, 0, 0, 0.1);
-}
-
-.tp-player-container > wave {
-    overflow: hidden !important;
-    -ms-overflow-style: none !important;
-}
-
-.tp-player-container > wave::-webkit-scrollbar {
-    width: 0 !important 
 }
 
 /**/
@@ -107,8 +100,11 @@ region.wavesurfer-region {
 /* Text View */
 .tp-tv-container.view-mode--text > .tp-tv-line {
     display: inline;
-    margin-right: var(--space-width);
     color: grey;
+}
+
+.tp-tv-container.view-mode--text.viewing > .tp-tv-line {
+    margin-right: var(--space-width);
 }
 
 .tp-tv-container.view-mode--text > .tp-tv-line.tp-tv-line.tp-tv-line--current {

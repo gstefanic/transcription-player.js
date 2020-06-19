@@ -54,3 +54,28 @@ Function.prototype.throttle = function (milliseconds, context) {
         }
     };
 };
+
+Function.prototype.limit = function (milliseconds, context) {
+    var baseFunction = this,
+        last = null,
+        limit = milliseconds,
+        timer = null;
+
+    var db = baseFunction.debounce(limit);
+    return function() {
+        var self = context || this,
+            args = arguments,
+            now = Date.now();
+        if (last && now < last + limit) {
+            clearTimeout(timer);
+            db.apply(self, args);
+            timer = setTimeout(function() {
+                last = now;
+                baseFunction.apply(self, args);
+            }, limit);
+        } else {
+            last = now;
+            baseFunction.apply(self, args);
+        }
+    };
+}

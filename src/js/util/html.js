@@ -60,8 +60,40 @@ function create(el, attr) {
     return element;
 }
 
+function forceHorizontalScroll(container) {
+    function scrollHorizontally(e) {
+        e = window.event || e;
+        var delta = Math.max(-1, Math.min(1, (e.deltaY || e.wheelDelta || -e.detail)));
+        // console.log('wheel', delta, e);
+        container.scrollLeft += (delta * 40); // Multiplied by 40
+        e.preventDefault();
+    }
+    if (container.addEventListener) {
+        container.addEventListener("wheel", scrollHorizontally, false);
+    } else {
+        // IE 6/7/8
+        container.attachEvent("onmousewheel", scrollHorizontally);
+    }
+}
+
+function coordinatesInElement(element, {y, x}) {
+    var rect = element.getBoundingClientRect();
+    var X = x - rect.left; //x position within the element.
+    var Y = y - rect.top;  //y position within the element.
+    if (X >= 0 && X <= rect.width && Y >= 0 && Y <= rect.height) {
+        return {
+            x: X,
+            y: Y,
+        };
+    } else {
+        return {};
+    }
+}
+
 export default {
     parse,
     textMetrics,
     create,
+    forceHorizontalScroll,
+    coordinatesInElement,
 }

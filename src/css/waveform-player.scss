@@ -1,0 +1,81 @@
+/* CONTAINER */
+
+.tp-player-container {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+/* ITEMS */
+
+.tp-player-container > .tp-wavesurfer-container {
+    align-self: stretch;
+    flex-grow: 1;
+    margin: 0 8px;
+}
+
+/* WAVEFORM */
+wave {
+    overflow: hidden !important;
+    -ms-overflow-style: none !important;
+}
+
+wave::-webkit-scrollbar {
+    width: 0 !important 
+}
+
+/* PLAY PAUSE BUTTON */
+.tp-waveform-play-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.tp-waveform-play-button > img {
+    margin: 8px;
+    width: 40px;
+    height: 40px;
+}
+
+.tp-waveform-play-button > .tp-waveform-player--pause {
+    display: none;
+}
+
+.tp-waveform-play-button.playing > .tp-waveform-player--pause {
+    display: inline;
+}
+
+.tp-waveform-play-button.playing > .tp-waveform-player--play {
+    display: none;
+}
+
+/* SLIDER */
+.range-slider {
+
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+
+    // Slider
+    input[type=range][orient=vertical] {
+        -webkit-appearance: none;
+        // height: 200px;
+        border-radius: 5px;
+        background: #ccc;
+        outline: none;
+        writing-mode: bt-lr; /* IE */
+        -webkit-appearance: slider-vertical; /* WebKit */
+    }
+}
+  
+// Firefox Overrides
+::-moz-range-track {
+    background: #ccc;
+    border: 0;
+}
+
+input::-moz-focus-inner { 
+    border: 0; 
+}
+/**/
