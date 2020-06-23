@@ -38,6 +38,7 @@ export default class WaveformPlayer extends util.Observer {
 
         /* Load stylesheets */
         require('../css/waveform-player.scss');
+        require('../css/custom-region-handle.scss');
 
         /* Load view into container */
         container.innerHTML = require('../html/waveform-player.html')();
@@ -77,7 +78,7 @@ export default class WaveformPlayer extends util.Observer {
         const moveTimelineHandlers = {
             mousedown: event => {
                 const targets = document.elementsFromPoint(event.x, event.y);
-                const isHandle = targets.some(target => target instanceof HTMLElement && target.classList.contains('wavesurfer-handle'));
+                const isHandle = targets.some(target => target instanceof HTMLElement && target.tagName.toLowerCase() === 'handle');
                 if (isHandle) {
                     return;
                 }
@@ -223,7 +224,10 @@ export default class WaveformPlayer extends util.Observer {
                 container.classList.add('playing');
             }
 
-            wavesurfer.on('play', () => container.classList.add('playing'));
+            wavesurfer.on('play', () => {
+                container.classList.add('playing');
+                cancelAllRegionEditing();
+            });
             wavesurfer.on('pause', () => container.classList.remove('playing'));
 
             container.addEventListener('click', event => container.classList.contains('playing') ? wavesurfer.pause() : wavesurfer.play());
@@ -249,8 +253,99 @@ export default class WaveformPlayer extends util.Observer {
         /**
          * @returns {Region[]}
          */
-        console.log('this:', this);
         this.getRegions = () => regions;
+
+        const cancelAllRegionEditing = () => {
+            const editingRegions = container.querySelectorAll('.tp-handle-box.editing');
+            editingRegions.forEach(handleElement => {
+                const region = wavesurfer.regions.list[handleElement.parentElement?.parentElement?.dataset.id];
+                if (region) {
+                    const inputElement = handleElement.querySelector('input.tp-handle-value');
+                    if (inputElement && handleElement.classList.contains('wavesurfer-handle-start')) {
+                        inputElement.value = region.start;
+                    } else if (inputElement) {
+                        inputElement.value = region.end;
+                    }
+                }
+                handleElement.classList.remove('editing');
+            });
+        };
+
+        /**
+         * @description Add custom region handle to region
+         * @param {Region} region 
+         */
+        const addCustomRegionHandle = region => {
+            console.log('@addCustomRegionHandle', region);
+
+            /**
+             * @type {HTMLElement}
+             */
+            const startHandle = region.element.querySelector('.wavesurfer-handle-start');
+            const endHandle = region.element.querySelector('.wavesurfer-handle-end');
+
+            startHandle.appendChild(util.html.create('handle', {
+                innerHTML: require('../html/custom-region-handle.html')({
+                    value: region.start,
+                }),
+            })).classList.add('tp-handle-box', 'wavesurfer-handle-start');
+            
+            endHandle.appendChild(util.html.create('handle', {
+                innerHTML: require('../html/custom-region-handle.html')({
+                    value: region.end,
+                }),
+            })).classList.add('tp-handle-box', 'wavesurfer-handle-end');
+
+            const addHandleEventHandlers = handle => {
+
+                // Double click to edit
+                handle?.addEventListener('dblclick', event => {
+                    if (!handle.querySelector('.tp-handle-box')?.classList.contains('editing')) {
+                        cancelAllRegionEditing();
+
+                        // Set current values
+                        const inputValueElement = handle.querySelector('input.tp-handle-value');
+                        if (handle.classList.contains('wavesurfer-handle-start') && inputValueElement) {
+                            inputValueElement.value = region.start;
+                        } else if (inputValueElement) {
+                            inputValueElement.value = region.end;
+                        }
+
+                        handle.querySelector('.tp-handle-box')?.classList.add('editing');
+                    }
+                });
+
+                // Confirm
+                handle?.querySelector('.tp-handle-edit-container > .tp-handle-button-confirm')?.addEventListener('click', event => {
+                    const newValue = handle.querySelector('input.tp-handle-value')?.value;
+                    if (handle.classList.contains('wavesurfer-handle-start') && newValue !== undefined && newValue !== region.start) {
+                        region.update({
+                            start: newValue,
+                        });
+                    } else if (newValue !== undefined && newValue !== region.end) {
+                        region.update({
+                            end: newValue,
+                        });
+                    }
+                    handle.querySelector('.tp-handle-box')?.classList.remove('editing');
+                });
+
+                // Cancel
+                handle?.querySelector('.tp-handle-edit-container > .tp-handle-button-cancel')?.addEventListener('click', event => {
+                    const inputValueElement = handle.querySelector('input.tp-handle-value');
+                    if (handle.classList.contains('wavesurfer-handle-start') && inputValueElement) {
+                        inputValueElement.value = region.start;
+                    } else if (inputValueElement) {
+                        inputValueElement.value = region.end;
+                    }
+                    handle.querySelector('.tp-handle-box')?.classList.remove('editing');
+                });
+            };
+
+            addHandleEventHandlers(startHandle);
+            addHandleEventHandlers(endHandle);
+
+        }
 
         /**
          * @param {Region} region 
@@ -283,6 +378,9 @@ export default class WaveformPlayer extends util.Observer {
 
                     // Add handlers for drag move timeline
                     region.element.addEventListener('mousedown', moveTimelineHandlers.mousedown);
+
+                    // Add custom sliders
+                    addCustomRegionHandle(region);
         
                     return {
                         region: region,
@@ -404,40 +502,59 @@ export default class WaveformPlayer extends util.Observer {
 
             if (!options) {
                 wavesurfer.zoom(newZoom);
-                return;
-            }
-
-            let target = options.target;
-            const clientX = options.clientX;
-            const clientY = options.clientY;
-            if (target instanceof HTMLElement && clientX !== undefined && clientY !== undefined) {
-                while (true) {
-                    if (target === document) {
-                        console.error('implementation error, wave was not clicked');
-                        return;
-                    }
-                    if (target.tagName === 'WAVE') {
-                        break;
-                    }
-                    target = target.parentElement;
-                }
-
-                
-                const waveElement = target;
-                const scrollLeft = waveElement.scrollLeft;
-                const positionInWave = util.html.coordinatesInElement(waveElement, { x: clientX, y: clientY });
-                if (positionInWave.x === undefined) {
-                    return;   
-                }
-                const offsetLeft = positionInWave.x;
-                const mouseAtTime = (offsetLeft + scrollLeft) / wavesurfer.params.minPxPerSec;
-                const relativePositionInWave = offsetLeft / waveElement.offsetWidth;
-
-                wavesurfer.zoom(newZoom);
-                centerTimeAt(mouseAtTime, relativePositionInWave);
             } else {
-                wavesurfer.zoom(newZoom);
+                let target = options.target;
+                const clientX = options.clientX;
+                const clientY = options.clientY;
+                if (target instanceof HTMLElement && clientX !== undefined && clientY !== undefined) {
+                    while (true) {
+                        if (target === document) {
+                            console.error('implementation error, wave was not clicked');
+                            return;
+                        }
+                        if (target.tagName === 'WAVE') {
+                            break;
+                        }
+                        target = target.parentElement;
+                    }
+    
+                    
+                    const waveElement = target;
+                    const scrollLeft = waveElement.scrollLeft;
+                    const positionInWave = util.html.coordinatesInElement(waveElement, { x: clientX, y: clientY });
+                    if (positionInWave.x === undefined) {
+                        return;   
+                    }
+                    const offsetLeft = positionInWave.x;
+                    const mouseAtTime = (offsetLeft + scrollLeft) / wavesurfer.params.minPxPerSec;
+                    const relativePositionInWave = offsetLeft / waveElement.offsetWidth;
+    
+                    wavesurfer.zoom(newZoom);
+                    centerTimeAt(mouseAtTime, relativePositionInWave);
+                } else {
+                    wavesurfer.zoom(newZoom);
+                }
             }
+
+            const isZoomedAllTheWayIn = () => {
+                return (width / wavesurfer.params.minPxPerSec) <= minZoomDuration;
+            };
+
+            // Get all active regions and check if custom handle should be visible
+            const activeRegions = wavesurfer.container.querySelectorAll('wave > region.active');
+            activeRegions.forEach(regionElement => {
+                const handleElement = regionElement.querySelector('handle.wavesurfer-handle');
+                const regionWidth = regionElement.offsetWidth;
+                if (handleElement) {
+                    const handleWidth = handleElement.offsetWidth || 2;
+                    const regionToHandleRation = regionWidth / handleWidth;
+                    if (regionToHandleRation > 25 || isZoomedAllTheWayIn()) {
+                        regionElement.classList.add('custom-handle-visible')
+                    } else {
+                        regionElement.classList.remove('custom-handle-visible')
+                    }
+                }
+            });
         };
 
         const zoomIn = (step = 0.1, options) => {
@@ -463,6 +580,7 @@ export default class WaveformPlayer extends util.Observer {
         this.zoomReset = zoomReset;
 
         const deactivateAllRegions = () => {
+            cancelAllRegionEditing();
             Array.prototype.slice.call(wavesurfer.container.querySelectorAll('region.active'))
             .forEach(e => e.classList.remove('active'));
         }
@@ -518,12 +636,20 @@ export default class WaveformPlayer extends util.Observer {
                 region.update({
                     start: prevRegion.end,
                 });
+                const inputValueElement = region?.element?.querySelector('.tp-handle-box.wavesurfer-handle-start .tp-handle-edit-container > input.tp-handle-value');
+                if (inputValueElement) {
+                    inputValueElement.value = prevRegion.end;
+                }
             }
 
             if (nextRegion && region.end > nextRegion.start) {
                 region.update({
                     end: nextRegion.start,
                 });
+                const inputValueElement = region?.element?.querySelector('.tp-handle-box.wavesurfer-handle-end .tp-handle-edit-container > input.tp-handle-value');
+                if (inputValueElement) {
+                    inputValueElement.value = nextRegion.start;
+                }
             }
         };
 
@@ -544,7 +670,7 @@ export default class WaveformPlayer extends util.Observer {
          */
         wavesurfer.on('region-update-end', (region => {
             const index = this.getRegionIndex(region);
-            console.log('region-update-end', index, region)
+            console.log('region-update-end', index, region);
             this.playRegion(index);
             this.fireEvent('region-update-end', index, region);
         }).debounce(150));

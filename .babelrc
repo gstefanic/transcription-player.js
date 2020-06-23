@@ -8,6 +8,7 @@
   ],
   "plugins": [
     "transform-class-properties",
-    "add-module-exports"
+    "add-module-exports",
+    "@babel/plugin-proposal-optional-chaining"
   ]
 }

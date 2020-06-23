@@ -46,6 +46,7 @@
   ],
   "devDependencies": {
     "@babel/core": "^7.9.6",
+    "@babel/plugin-proposal-optional-chaining": "^7.10.3",
     "@babel/preset-env": "^7.9.6",
     "@rangy/core": "^2.1.0",
     "@simonwep/selection-js": "^1.7.0",
